@@ -21,8 +21,13 @@ THE SOFTWARE.
 */
 package main
 
-import "github.com/donovanmods/icarus-mod-tools/cmd"
+import (
+	"github.com/donovanmods/icarus-mod-tools/cmd"
+	"github.com/donovanmods/icarus-mod-tools/lib/logger"
+)
 
 func main() {
 	cmd.Execute()
+
+	logger.TestLogger()
 }

@@ -26,7 +26,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/fatih/color"
+	"github.com/donovanmods/icarus-mod-tools/lib/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -40,9 +40,12 @@ var rootCmd = &cobra.Command{
 	Short:   "CLI tool to help manage the Icarus ProjectDaedalus database",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		noColor, _ := cmd.Flags().GetBool("no-color")
-		if noColor {
-			color.NoColor = true
-		}
+		verbosity, _ := cmd.Flags().GetCount("verbose")
+
+		viper.Set("color", !noColor)
+		viper.Set("verbosity", verbosity)
+
+		logger.SetLogger(verbosity)
 	},
 }
 
@@ -70,11 +73,6 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	verbosity, _ := rootCmd.Flags().GetCount("verbose")
-	viper.Set("verbosity", verbosity)
-
-	setLogger(verbosity)
-
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -99,28 +97,4 @@ func initConfig() {
 
 func version() string {
 	return fmt.Sprintln(rootCmd.Version)
-}
-
-func setLogger(verbosity int) {
-	var level slog.Level
-
-	if verbosity > 3 {
-		verbosity = 3
-	}
-
-	switch verbosity {
-	case 3:
-		level = slog.LevelDebug
-	case 2:
-		level = slog.LevelInfo
-	case 1:
-		level = slog.LevelWarn
-	default:
-		level = slog.LevelError
-	}
-
-	slog.SetLogLoggerLevel(level)
-
-	// logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
-	// slog.SetDefault(logger)
 }
