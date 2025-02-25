@@ -43,16 +43,16 @@ upgrade: tidy
 build-all: build-win build-linux
 
 build-linux:
-	GOOS=linux GOARCH=amd64 go build -o "bin/imt" ./main.go
+	GOOS=linux GOARCH=amd64 go build -o "bin/pdt" ./main.go
 
 build-win:
-	GOOS=windows GOARCH=amd64 go build -o "bin/imt.exe" ./main.go
+	GOOS=windows GOARCH=amd64 go build -o "bin/pdt.exe" ./main.go
 
 ## Package sub-commands
 
 package:
-	zip -r "pkg/imt.zip" "bin/imt"
-	zip -r "pkg/imt.exe.zip" "bin/imt.exe"
+	zip -r "pkg/pdt.zip" "bin/pdt"
+	zip -r "pkg/pdt.exe.zip" "bin/pdt.exe"
 
 ## Git Hooks
 

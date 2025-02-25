@@ -43,5 +43,5 @@ var versionCmd = &cobra.Command{
 }
 
 func longVersion() string {
-	return fmt.Sprintf("IMT v%s - Donovan C. Young\n\n%s", rootCmd.Version, rootCmd.Short)
+	return fmt.Sprintf("PDT v%s - Donovan C. Young\n\n%s", rootCmd.Version, rootCmd.Short)
 }

@@ -26,7 +26,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/donovanmods/icarus-mod-tools/lib/logger"
+	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -35,9 +35,9 @@ var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:     "imt",
+	Use:     "pdt",
 	Version: "0.1.0",
-	Short:   "CLI tool to help manage the Icarus ProjectDaedalus database",
+	Short:   "ProjectDaedalus Database Tool - a CLI utility to manage the Icarus ProjectDaedalus database",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		noColor, _ := cmd.Flags().GetBool("no-color")
 		verbosity, _ := cmd.Flags().GetCount("verbose")
@@ -62,7 +62,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.imt.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.pdtconfig.yaml)")
 	rootCmd.PersistentFlags().CountP("verbose", "v", "verbose output (may be repeated)")
 	rootCmd.PersistentFlags().Bool("dryrun", false, "run without performing any persistent operations")
 	rootCmd.PersistentFlags().Bool("color", true, "colorize output")
@@ -81,10 +81,10 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		// Search config in home directory with name ".imtconfig" (without extension).
+		// Search config in home directory with name ".pdtconfig" (without extension).
 		viper.AddConfigPath(home)
 		viper.SetConfigType("json")
-		viper.SetConfigName(".imtconfig")
+		viper.SetConfigName(".pdtconfig")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match

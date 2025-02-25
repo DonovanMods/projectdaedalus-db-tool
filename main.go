@@ -22,8 +22,8 @@ THE SOFTWARE.
 package main
 
 import (
-	"github.com/donovanmods/icarus-mod-tools/cmd"
-	"github.com/donovanmods/icarus-mod-tools/lib/logger"
+	"github.com/donovanmods/projectdaedalus-db-tool/cmd"
+	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
 )
 
 func main() {

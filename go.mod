@@ -1,4 +1,4 @@
-module github.com/donovanmods/icarus-mod-tools
+module github.com/donovanmods/projectdaedalus-db-tool
 
 go 1.24.0
 
