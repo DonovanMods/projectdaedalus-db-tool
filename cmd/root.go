@@ -23,6 +23,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/fatih/color"
@@ -38,11 +39,7 @@ var rootCmd = &cobra.Command{
 	Version: "0.1.0",
 	Short:   "CLI tool to help manage the Icarus ProjectDaedalus database",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		verbosity, _ := cmd.Flags().GetCount("verbose")
 		noColor, _ := cmd.Flags().GetBool("no-color")
-
-		viper.Set("verbosity", verbosity)
-
 		if noColor {
 			color.NoColor = true
 		}
@@ -73,6 +70,11 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	verbosity, _ := rootCmd.Flags().GetCount("verbose")
+	viper.Set("verbosity", verbosity)
+
+	setLogger(verbosity)
+
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -81,20 +83,44 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		// Search config in home directory with name ".imt" (without extension).
+		// Search config in home directory with name ".imtconfig" (without extension).
 		viper.AddConfigPath(home)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".imt")
+		viper.SetConfigType("json")
+		viper.SetConfigName(".imtconfig")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+		slog.Debug(fmt.Sprint("Using config file", viper.ConfigFileUsed()))
 	}
 }
 
 func version() string {
 	return fmt.Sprintln(rootCmd.Version)
+}
+
+func setLogger(verbosity int) {
+	var level slog.Level
+
+	if verbosity > 3 {
+		verbosity = 3
+	}
+
+	switch verbosity {
+	case 3:
+		level = slog.LevelDebug
+	case 2:
+		level = slog.LevelInfo
+	case 1:
+		level = slog.LevelWarn
+	default:
+		level = slog.LevelError
+	}
+
+	slog.SetLogLoggerLevel(level)
+
+	// logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
+	// slog.SetDefault(logger)
 }
