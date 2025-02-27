@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 Donovan C. Young <dyoung522@gmail.com>
+Copyright © 2025 Donovan C. Young
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,7 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-package cmd
+package listCmd
 
 import (
 	"fmt"
@@ -27,21 +27,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	// RootCmd.SetVersionTemplate(version())
-	RootCmd.AddCommand(versionCmd)
-}
+// delCmd represents the del command
+var ListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "A brief description of your command",
+	Long: `A longer description that spans multiple lines and likely contains examples
+and usage of using your command. For example:
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print the version information",
-	Long:  `All software has versions. This is ours.`,
-
+Cobra is a CLI library for Go that empowers applications.
+This application is a tool to generate the needed files
+to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(longVersion())
+		fmt.Println("list called")
 	},
 }
 
-func longVersion() string {
-	return fmt.Sprintf("PDT v%s - Donovan C. Young\n\n%s", RootCmd.Version, RootCmd.Short)
+func init() {
+	ListCmd.PersistentFlags().BoolP("json", "j", false, "Output in JSON format")
 }

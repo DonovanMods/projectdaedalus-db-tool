@@ -23,8 +23,13 @@ package cmd
 
 import (
 	"fmt"
-	"log/slog"
+	"log"
 	"os"
+
+	sub1 "github.com/donovanmods/projectdaedalus-db-tool/cmd/add"
+	sub2 "github.com/donovanmods/projectdaedalus-db-tool/cmd/del"
+	sub3 "github.com/donovanmods/projectdaedalus-db-tool/cmd/list"
+	sub4 "github.com/donovanmods/projectdaedalus-db-tool/cmd/sync"
 
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
 	"github.com/spf13/cobra"
@@ -33,8 +38,8 @@ import (
 
 var cfgFile string
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
+// RootCmd represents the base command when called without any subcommands
+var RootCmd = &cobra.Command{
 	Use:     "pdt",
 	Version: "0.1.0",
 	Short:   "ProjectDaedalus Database Tool - a CLI utility to manage the Icarus ProjectDaedalus database",
@@ -50,10 +55,10 @@ var rootCmd = &cobra.Command{
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
+// This is called by main.main(). It only needs to happen once to the RootCmd.
 func Execute() {
-	rootCmd.SetVersionTemplate(version())
-	err := rootCmd.Execute()
+	RootCmd.SetVersionTemplate(version())
+	err := RootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
@@ -62,13 +67,18 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.pdtconfig.yaml)")
-	rootCmd.PersistentFlags().CountP("verbose", "v", "verbose output (may be repeated)")
-	rootCmd.PersistentFlags().Bool("dryrun", false, "run without performing any persistent operations")
-	rootCmd.PersistentFlags().Bool("color", true, "colorize output")
-	rootCmd.PersistentFlags().Bool("no-color", false, "disable color output")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.pdtconfig.yaml)")
+	RootCmd.PersistentFlags().CountP("verbose", "v", "verbose output (may be repeated)")
+	RootCmd.PersistentFlags().Bool("dryrun", false, "run without performing any persistent operations")
+	RootCmd.PersistentFlags().Bool("color", true, "colorize output")
+	RootCmd.PersistentFlags().Bool("no-color", false, "disable color output")
 
-	_ = viper.BindPFlag("dryrun", rootCmd.PersistentFlags().Lookup("dryrun"))
+	_ = viper.BindPFlag("dryrun", RootCmd.PersistentFlags().Lookup("dryrun"))
+
+	RootCmd.AddCommand(sub1.AddCmd)
+	RootCmd.AddCommand(sub2.DelCmd)
+	RootCmd.AddCommand(sub3.ListCmd)
+	RootCmd.AddCommand(sub4.SyncCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -90,11 +100,11 @@ func initConfig() {
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		slog.Debug(fmt.Sprint("Using config file", viper.ConfigFileUsed()))
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatal("Unable to read config file, this is a required file: ", viper.ConfigFileUsed())
 	}
 }
 
 func version() string {
-	return fmt.Sprintln(rootCmd.Version)
+	return fmt.Sprintln(RootCmd.Version)
 }

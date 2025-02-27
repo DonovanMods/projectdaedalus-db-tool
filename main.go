@@ -23,11 +23,8 @@ package main
 
 import (
 	"github.com/donovanmods/projectdaedalus-db-tool/cmd"
-	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
 )
 
 func main() {
 	cmd.Execute()
-
-	logger.TestLogger()
 }

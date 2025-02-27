@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"fmt"
 	"log/slog"
 
 	"github.com/pterm/pterm"
@@ -14,7 +13,6 @@ var Log *slog.Logger = slog.Default()
 // SetLogger sets the default logger verbosity level and returns a [log/slog.Logger](https://pkg.go.dev/log/slog#Logger)
 // verbosity is an integer from 0 to 3, where higher numbers are more verbose
 func SetLogger(verbosity int) *slog.Logger {
-	fmt.Println("Setting logger")
 	if !viper.GetBool("color") {
 		pterm.DisableColor()
 	}

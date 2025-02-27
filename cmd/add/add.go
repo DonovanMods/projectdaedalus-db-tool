@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 Donovan C. Young <dyoung522@gmail.com>
+Copyright © 2025 Donovan C. Young
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,7 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-package cmd
+package addCmd
 
 import (
 	"fmt"
@@ -27,21 +27,30 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	// RootCmd.SetVersionTemplate(version())
-	RootCmd.AddCommand(versionCmd)
-}
+// addCmd represents the add command
+var AddCmd = &cobra.Command{
+	Use:   "add",
+	Short: "A brief description of your command",
+	Long: `A longer description that spans multiple lines and likely contains examples
+and usage of using your command. For example:
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print the version information",
-	Long:  `All software has versions. This is ours.`,
-
+Cobra is a CLI library for Go that empowers applications.
+This application is a tool to generate the needed files
+to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(longVersion())
+		fmt.Println("add called")
 	},
 }
 
-func longVersion() string {
-	return fmt.Sprintf("PDT v%s - Donovan C. Young\n\n%s", RootCmd.Version, RootCmd.Short)
+func init() {
+	// root.RootCmd.AddCommand(addCmd)
+	// Here you will define your flags and configuration settings.
+
+	// Cobra supports Persistent Flags which will work for this command
+	// and all subcommands, e.g.:
+	// addCmd.PersistentFlags().String("foo", "", "A help for foo")
+
+	// Cobra supports local flags which will only run when this command
+	// is called directly, e.g.:
+	// addCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

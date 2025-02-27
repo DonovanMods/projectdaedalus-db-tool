@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 Donovan C. Young <dyoung522@gmail.com>
+Copyright © 2025 Donovan C. Young
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,29 +19,33 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-package cmd
+package listCmd
 
 import (
 	"fmt"
 
+	"github.com/donovanmods/projectdaedalus-db-tool/lib/firestore"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	// RootCmd.SetVersionTemplate(version())
-	RootCmd.AddCommand(versionCmd)
-}
-
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print the version information",
-	Long:  `All software has versions. This is ours.`,
-
+// delCmd represents the del command
+var ReposCmd = &cobra.Command{
+	Use:   "repos",
+	Short: "Display a list of all repositories",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(longVersion())
+		repos := firestore.Repos()
+		if repos == nil {
+			return
+		}
+
+		if json, _ := cmd.Flags().GetBool("json"); json {
+			fmt.Println(repos.JSON())
+		} else {
+			repos.Print()
+		}
 	},
 }
 
-func longVersion() string {
-	return fmt.Sprintf("PDT v%s - Donovan C. Young\n\n%s", RootCmd.Version, RootCmd.Short)
+func init() {
+	ListCmd.AddCommand(ReposCmd)
 }
