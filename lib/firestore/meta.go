@@ -6,6 +6,13 @@ import (
 	"fmt"
 )
 
+type MetaList interface {
+	Add(item string)
+	Remove(item string)
+	JSON() string
+	Print()
+}
+
 var repo = metaList{name: "repositories"}
 var modInfo = metaList{name: "modinfos"}
 var toolInfo = metaList{name: "toolinfos"}
@@ -38,7 +45,7 @@ func (m *metaList) Print() {
 	}
 }
 
-func ModInfos() (*metaList, error) {
+func ModInfos() (MetaList, error) {
 	if modInfo.List != nil {
 		return &modInfo, nil
 	}
@@ -46,7 +53,7 @@ func ModInfos() (*metaList, error) {
 	return getDataFor("firebase.collections.meta.modinfo", &modInfo)
 }
 
-func Repos() (*metaList, error) {
+func Repos() (MetaList, error) {
 	if repo.List != nil {
 		return &repo, nil
 	}
@@ -54,7 +61,7 @@ func Repos() (*metaList, error) {
 	return getDataFor("firebase.collections.meta.repositories", &repo)
 }
 
-func ToolInfos() (*metaList, error) {
+func ToolInfos() (MetaList, error) {
 	if toolInfo.List != nil {
 		return &toolInfo, nil
 	}

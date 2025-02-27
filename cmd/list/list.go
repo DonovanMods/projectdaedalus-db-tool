@@ -24,6 +24,8 @@ package listCmd
 import (
 	"fmt"
 
+	"github.com/donovanmods/projectdaedalus-db-tool/lib/firestore"
+	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -40,6 +42,23 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("list called")
 	},
+}
+
+func doList(cmd *cobra.Command, args []string, collection func() (firestore.MetaList, error)) {
+	list, err := collection()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	if list == nil {
+		return
+	}
+
+	if json, _ := cmd.Flags().GetBool("json"); json {
+		fmt.Println(list.JSON())
+	} else {
+		list.Print()
+	}
 }
 
 func init() {

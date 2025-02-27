@@ -27,14 +27,14 @@ import (
 )
 
 // delCmd represents the del command
-var reposCmd = &cobra.Command{
-	Use:   "repos",
-	Short: "Display a list of all repositories",
+var modinfoCmd = &cobra.Command{
+	Use:   "modinfo",
+	Short: "Display a list of all modinfo entries",
 	Run: func(cmd *cobra.Command, args []string) {
-		doList(cmd, args, firestore.Repos)
+		doList(cmd, args, firestore.ModInfos)
 	},
 }
 
 func init() {
-	ListCmd.AddCommand(reposCmd)
+	ListCmd.AddCommand(modinfoCmd)
 }
