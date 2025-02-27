@@ -25,6 +25,7 @@ import (
 	"fmt"
 
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/firestore"
+	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +34,11 @@ var ReposCmd = &cobra.Command{
 	Use:   "repos",
 	Short: "Display a list of all repositories",
 	Run: func(cmd *cobra.Command, args []string) {
-		repos := firestore.Repos()
+		repos, err := firestore.Repos()
+		if err != nil {
+			logger.Fatal(err)
+		}
+
 		if repos == nil {
 			return
 		}

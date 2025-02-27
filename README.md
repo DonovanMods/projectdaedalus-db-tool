@@ -18,6 +18,7 @@ go install github.com/DonovanMods/ProjectDaedalus-DB-Tool@latest
 
 To use this tool, you need to configure it with your database connection details. You can do this by creating a configuration file in your home directory. The configuration file should be named `~/.pdtconfig.json` and contain the following data:
 
+```json
 {
   "firebase": {
     "credentials": {
@@ -38,3 +39,4 @@ To use this tool, you need to configure it with your database connection details
     "token": "YOUR GITHUB ACCESS TOKEN HERE"
   }
 }
+```
