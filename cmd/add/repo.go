@@ -29,29 +29,13 @@ import (
 
 // repoCmd represents the repo command
 var repoCmd = &cobra.Command{
-	Use:   "repo",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "repo <URL>",
+	Short: "A convienence utility to add Mods and Tools with a single URL",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("add repo called")
+		fmt.Println("Coming Soon!")
 	},
 }
 
 func init() {
 	AddCmd.AddCommand(repoCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// repoCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// repoCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
