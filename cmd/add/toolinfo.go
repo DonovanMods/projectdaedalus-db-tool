@@ -27,14 +27,14 @@ import (
 )
 
 // repoCmd represents the repo command
-var repoCmd = &cobra.Command{
-	Use:   "repo <URL>",
-	Short: "A convienence utility to add Mods and/or Tools with a single URL",
+var toolinfoCmd = &cobra.Command{
+	Use:   "toolinfo <URL>",
+	Short: "Adds a ToolInfo URL to the database",
 	Run: func(cmd *cobra.Command, args []string) {
-		doAdd(cmd, args, firestore.Repos)
+		doAdd(cmd, args, firestore.ToolInfo)
 	},
 }
 
 func init() {
-	AddCmd.AddCommand(repoCmd)
+	AddCmd.AddCommand(toolinfoCmd)
 }

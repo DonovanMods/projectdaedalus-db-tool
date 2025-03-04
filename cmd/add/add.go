@@ -22,6 +22,13 @@ THE SOFTWARE.
 package addCmd
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+
+	"github.com/donovanmods/projectdaedalus-db-tool/lib/firestore"
+	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -32,4 +39,40 @@ var AddCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 	},
+}
+
+func doAdd(cmd *cobra.Command, args []string, collection func() (firestore.MetaList, error)) {
+	if len(args) == 0 {
+		logger.Fatal(errors.New("no item given to add"))
+	}
+
+	newItem := args[0]
+
+	logger.Info(fmt.Sprintf("Adding: %q", newItem))
+
+	meta, err := collection()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	if meta == nil {
+		logger.Warn("Collection not found")
+		return
+	}
+
+	if err = meta.Update("", args[0]); err != nil {
+		logger.Fatal(err)
+	}
+
+	if jsonFlag, _ := cmd.Flags().GetBool("json"); jsonFlag {
+		j, err := json.MarshalIndent(meta.Items(), "  ", "  ")
+		if err != nil {
+			log.Print(err)
+		}
+		fmt.Printf("{\n  %q: %s\n}\n", meta.Name(), string(j))
+	} else {
+		for _, i := range meta.Items() {
+			fmt.Println(i)
+		}
+	}
 }
