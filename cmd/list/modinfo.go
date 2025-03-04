@@ -31,7 +31,7 @@ var modinfoCmd = &cobra.Command{
 	Use:   "modinfo",
 	Short: "Display a list of all modinfo entries",
 	Run: func(cmd *cobra.Command, args []string) {
-		doList(cmd, args, firestore.ModInfos)
+		doList(cmd, args, firestore.ModInfo)
 	},
 }
 

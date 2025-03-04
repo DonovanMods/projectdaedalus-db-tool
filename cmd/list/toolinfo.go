@@ -31,7 +31,7 @@ var toolinfoCmd = &cobra.Command{
 	Use:   "toolinfo",
 	Short: "Display a list of all toolinfo entries",
 	Run: func(cmd *cobra.Command, args []string) {
-		doList(cmd, args, firestore.ModInfos)
+		doList(cmd, args, firestore.ToolInfo)
 	},
 }
 

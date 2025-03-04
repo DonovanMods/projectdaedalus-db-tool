@@ -41,7 +41,7 @@ var cfgFile string
 var RootCmd = &cobra.Command{
 	Use:     "pdt",
 	Version: "0.1.0",
-	Short:   "ProjectDaedalus Database Tool - a CLI utility to manage the Icarus ProjectDaedalus database",
+	Short:   "ProjectDaedalus Database Tool (PDT) - a CLI utility to manage the ProjectDaedalus database",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		noColor, _ := cmd.Flags().GetBool("no-color")
 		verbosity, _ := cmd.Flags().GetCount("verbose")

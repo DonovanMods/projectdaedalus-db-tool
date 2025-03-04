@@ -1,56 +1,79 @@
 package firestore
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+
+	"golang.org/x/exp/slices"
 )
 
 type MetaList interface {
-	Add(item string)
-	Remove(item string)
-	JSON() string
-	Print()
+	Items() []string
+	Name() string
+	Remove(item string) error
+	Update(item string, newItem string) error
 }
 
 var repo = metaList{name: "repositories"}
-var modInfo = metaList{name: "modinfos"}
-var toolInfo = metaList{name: "toolinfos"}
+var modInfo = metaList{name: "modinfo"}
+var toolInfo = metaList{name: "toolinfo"}
 
 type metaList struct {
 	List []string `firestore:"list"`
 	name string
 }
 
-func (m *metaList) Add(item string) {
-	m.List = append(m.List, item)
-}
+// Update updates or adds an item to the list
+// If item is already in the list, it will be removed and replaced with newItem
+// if item is blank, newItem will be added
+func (m *metaList) Update(item string, newItem string) error {
+	// do not add blank items
+	if newItem == "" {
+		return errors.New("newItem cannot be blank in call to Update()")
+	}
 
-func (m *metaList) Remove(item string) {
-	for i, v := range m.List {
-		if v == item {
-			m.List = append(m.List[:i], m.List[i+1:]...)
+	if item != "" && slices.Contains(m.List, item) {
+		if err := m.Remove(item); err != nil {
+			return err
 		}
 	}
+
+	m.List = append(m.List, newItem)
+
+	return nil
 }
 
-func (m *metaList) JSON() string {
-	j, _ := json.Marshal(m.List)
-	return fmt.Sprintf(`{%q:%s}`, m.name, string(j))
-}
-
-func (m *metaList) Print() {
-	for _, v := range m.List {
-		fmt.Println(v)
+// Remove an item from the list
+func (m *metaList) Remove(item string) error {
+	if item == "" {
+		return errors.New("item cannot be blank in call to Remove()")
 	}
+
+	for i, v := range m.List {
+		if v == item {
+			m.List = slices.Delete(m.List, i, i)
+		}
+	}
+
+	return nil
 }
 
-func ModInfos() (MetaList, error) {
+// Items returns the slice of items
+func (m *metaList) Items() []string {
+	return m.List
+}
+
+// Name returns the name of the list
+func (m *metaList) Name() string {
+	return m.name
+}
+
+func ModInfo() (MetaList, error) {
 	if modInfo.List != nil {
 		return &modInfo, nil
 	}
 
-	return getDataFor("firebase.collections.meta.modinfo", &modInfo)
+	return getDataFor(&modInfo)
 }
 
 func Repos() (MetaList, error) {
@@ -58,19 +81,19 @@ func Repos() (MetaList, error) {
 		return &repo, nil
 	}
 
-	return getDataFor("firebase.collections.meta.repositories", &repo)
+	return getDataFor(&repo)
 }
 
-func ToolInfos() (MetaList, error) {
+func ToolInfo() (MetaList, error) {
 	if toolInfo.List != nil {
 		return &toolInfo, nil
 	}
 
-	return getDataFor("firebase.collections.meta.toolinfo", &toolInfo)
+	return getDataFor(&toolInfo)
 }
 
-func getDataFor(collection string, structPtr *metaList) (*metaList, error) {
-	docSnap, err := getDocument(collection)
+func getDataFor(structPtr *metaList) (*metaList, error) {
+	docSnap, err := getDocument(fmt.Sprintf("firebase.collections.meta.%s", (*structPtr).name))
 	if err != nil {
 		return nil, err
 	}
