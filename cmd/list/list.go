@@ -22,9 +22,7 @@ THE SOFTWARE.
 package listCmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/firestore"
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
@@ -53,15 +51,13 @@ func doList(cmd *cobra.Command, args []string, collection func() (firestore.Meta
 	}
 
 	if jsonFlag, _ := cmd.Flags().GetBool("json"); jsonFlag {
-		j, err := json.MarshalIndent(meta.Items(), "  ", "  ")
-		if err != nil {
-			log.Print(err)
+		if j, err := meta.Json(); err != nil {
+			logger.Fatal(err)
+		} else {
+			fmt.Println(j)
 		}
-		fmt.Printf("{\n  %q: %s\n}\n", meta.Name(), string(j))
 	} else {
-		for _, i := range meta.Items() {
-			fmt.Println(i)
-		}
+		fmt.Println(meta.String())
 	}
 }
 

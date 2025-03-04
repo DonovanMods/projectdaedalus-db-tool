@@ -22,14 +22,13 @@ THE SOFTWARE.
 package addCmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/firestore"
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // addCmd represents the add command
@@ -42,6 +41,8 @@ var AddCmd = &cobra.Command{
 }
 
 func doAdd(cmd *cobra.Command, args []string, collection func() (firestore.MetaList, error)) {
+	_ = cmd // Unused for now
+
 	if len(args) == 0 {
 		logger.Fatal(errors.New("no item given to add"))
 	}
@@ -64,15 +65,11 @@ func doAdd(cmd *cobra.Command, args []string, collection func() (firestore.MetaL
 		logger.Fatal(err)
 	}
 
-	if jsonFlag, _ := cmd.Flags().GetBool("json"); jsonFlag {
-		j, err := json.MarshalIndent(meta.Items(), "  ", "  ")
-		if err != nil {
-			log.Print(err)
-		}
-		fmt.Printf("{\n  %q: %s\n}\n", meta.Name(), string(j))
-	} else {
-		for _, i := range meta.Items() {
-			fmt.Println(i)
-		}
+	if err = meta.Commit(); err != nil {
+		logger.Fatal(err)
+	}
+
+	if viper.GetInt("verbosity") > 0 {
+		fmt.Println(meta.String())
 	}
 }

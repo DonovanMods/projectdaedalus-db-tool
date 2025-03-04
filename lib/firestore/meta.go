@@ -1,8 +1,10 @@
 package firestore
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"golang.org/x/exp/slices"
 )
@@ -10,7 +12,10 @@ import (
 type MetaList interface {
 	Items() []string
 	Name() string
+	Commit() error
 	Remove(item string) error
+	String() string
+	Json() (string, error)
 	Update(item string, newItem string) error
 }
 
@@ -21,6 +26,13 @@ var toolInfo = metaList{name: "toolinfo"}
 type metaList struct {
 	List []string `firestore:"list"`
 	name string
+}
+
+// FIXME: Commit() is not implemented
+func (m *metaList) Commit() error {
+	// return setDocument(fmt.Sprintf("firebase.collections.meta.%s", m.name), m)
+	fmt.Println("Commit() not yet implemented -- items will not be written to the database")
+	return nil
 }
 
 // Update updates or adds an item to the list
@@ -56,6 +68,18 @@ func (m *metaList) Remove(item string) error {
 	}
 
 	return nil
+}
+
+func (m *metaList) String() string {
+	return strings.Join(m.List, "\n")
+}
+
+func (m *metaList) Json() (string, error) {
+	if j, err := json.MarshalIndent(m.List, "  ", "  "); err != nil {
+		return "", err
+	} else {
+		return fmt.Sprintf("{\n  %q: %s\n}\n", m.name, string(j)), nil
+	}
 }
 
 // Items returns the slice of items
