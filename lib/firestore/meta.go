@@ -1,21 +1,24 @@
 package firestore
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
+	gfs "cloud.google.com/go/firestore"
+	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
 	"golang.org/x/exp/slices"
 )
 
 type MetaList interface {
+	Commit() (*gfs.WriteResult, error)
 	Items() []string
+	Json() (string, error)
 	Name() string
-	Commit() error
 	Remove(item string) error
 	String() string
-	Json() (string, error)
 	Update(item string, newItem string) error
 }
 
@@ -24,15 +27,23 @@ var modInfo = metaList{name: "modinfo"}
 var toolInfo = metaList{name: "toolinfo"}
 
 type metaList struct {
-	List []string `firestore:"list"`
-	name string
+	List  []string `firestore:"list"`
+	name  string
+	dirty bool
 }
 
-// FIXME: Commit() is not implemented
-func (m *metaList) Commit() error {
-	// return setDocument(fmt.Sprintf("firebase.collections.meta.%s", m.name), m)
-	fmt.Println("Commit() not yet implemented -- items will not be written to the database")
-	return nil
+func (m *metaList) Commit() (*gfs.WriteResult, error) {
+	if fsClient == nil {
+		return nil, errors.New("firestore client not initialized")
+	}
+
+	if m.dirty {
+		logger.Info(fmt.Sprintf("committing changes to %q", m.name))
+
+		return fsClient.Collection(m.collectionName()).Doc("list").Set(context.Background(), m)
+	}
+
+	return nil, nil
 }
 
 // Update updates or adds an item to the list
@@ -51,6 +62,7 @@ func (m *metaList) Update(item string, newItem string) error {
 	}
 
 	m.List = append(m.List, newItem)
+	m.dirty = true
 
 	return nil
 }
@@ -66,6 +78,8 @@ func (m *metaList) Remove(item string) error {
 			m.List = slices.Delete(m.List, i, i)
 		}
 	}
+
+	m.dirty = true
 
 	return nil
 }
@@ -90,6 +104,10 @@ func (m *metaList) Items() []string {
 // Name returns the name of the list
 func (m *metaList) Name() string {
 	return m.name
+}
+
+func (m *metaList) collectionName() string {
+	return fmt.Sprintf("firebase.collections.meta.%s", m.name)
 }
 
 func ModInfo() (MetaList, error) {
@@ -117,7 +135,7 @@ func ToolInfo() (MetaList, error) {
 }
 
 func getDataFor(structPtr *metaList) (*metaList, error) {
-	docSnap, err := getDocument(fmt.Sprintf("firebase.collections.meta.%s", (*structPtr).name))
+	docSnap, err := getDocument((*structPtr).collectionName())
 	if err != nil {
 		return nil, err
 	}

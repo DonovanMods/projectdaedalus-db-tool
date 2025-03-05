@@ -3,6 +3,7 @@ package firestore
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"cloud.google.com/go/auth/credentials"
@@ -13,6 +14,11 @@ import (
 )
 
 var fsClient *gfs.Client
+var dbCollectionTypes = map[string]*metaList{
+	"repositories": &repo,
+	"modinfo":      &modInfo,
+	"toolinfo":     &toolInfo,
+}
 
 type ConfigEmpty struct {
 	Item string
@@ -20,6 +26,22 @@ type ConfigEmpty struct {
 
 func (e *ConfigEmpty) Error() string {
 	return fmt.Sprintf("config item %q not found", e.Item)
+}
+
+func Commit() error {
+	if fsClient == nil {
+		logger.Panic(errors.New("firestore client not initialized"))
+	}
+
+	logger.Info("committing All Firestore changes")
+
+	for _, collection := range dbCollectionTypes {
+		if _, err := collection.Commit(); err != nil {
+			return err
+		}
+	}
+
+	return fsClient.Close()
 }
 
 func getClient() (*gfs.Client, error) {
@@ -44,7 +66,7 @@ func getClient() (*gfs.Client, error) {
 		logger.Panic(err)
 	}
 
-	fsClient, err := gfs.NewClient(context.Background(), projectID, option.WithAuthCredentials(creds))
+	fsClient, err = gfs.NewClient(context.Background(), projectID, option.WithAuthCredentials(creds))
 	if err != nil {
 		logger.Panic(err)
 	}

@@ -65,7 +65,7 @@ func doAdd(cmd *cobra.Command, args []string, collection func() (firestore.MetaL
 		logger.Fatal(err)
 	}
 
-	if err = meta.Commit(); err != nil {
+	if err := firestore.Commit(); err != nil {
 		logger.Fatal(err)
 	}
 
