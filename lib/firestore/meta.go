@@ -16,6 +16,7 @@ type MetaList interface {
 	fmt.Stringer
 	json.Marshaler
 	Commit() (*gfs.WriteResult, error)
+	Count() int
 	Remove(item string) error
 	Update(item string, newItem string) error
 }
@@ -32,6 +33,7 @@ type metaList struct {
 	dirty bool
 }
 
+// Commit writes the list to Firestore
 func (m *metaList) Commit() (*gfs.WriteResult, error) {
 	if fsClient == nil {
 		return nil, errors.New("firestore client not initialized")
@@ -54,6 +56,11 @@ func (m *metaList) Commit() (*gfs.WriteResult, error) {
 	}
 
 	return nil, nil
+}
+
+// Count returns the number of items in the list
+func (m *metaList) Count() int {
+	return len(m.Items)
 }
 
 // Update updates or adds an item to the list

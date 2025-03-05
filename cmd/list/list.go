@@ -50,6 +50,11 @@ func doList(cmd *cobra.Command, args []string, collection func() (firestore.Meta
 		return
 	}
 
+	if meta.Count() == 0 {
+		logger.Warn("No items returned")
+		return
+	}
+
 	if jsonFlag, _ := cmd.Flags().GetBool("json"); jsonFlag {
 		if j, err := meta.MarshalJSON(); err != nil {
 			logger.Fatal(err)
