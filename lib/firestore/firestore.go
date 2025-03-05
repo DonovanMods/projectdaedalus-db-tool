@@ -20,12 +20,12 @@ var dbCollectionTypes = map[string]*metaList{
 	"toolinfo":     &toolInfo,
 }
 
-type ConfigEmpty struct {
-	Item string
+type ConfigNotFoundError struct {
+	item string
 }
 
-func (e *ConfigEmpty) Error() string {
-	return fmt.Sprintf("config item %q not found", e.Item)
+func (e ConfigNotFoundError) Error() string {
+	return fmt.Sprintf("config item %q not found", e.item)
 }
 
 func Commit() error {
@@ -78,7 +78,7 @@ func getCollection(collectionString string) (string, error) {
 	collection := viper.GetString(collectionString)
 
 	if collection == "" {
-		return "", &ConfigEmpty{Item: collectionString}
+		return "", &ConfigNotFoundError{item: collectionString}
 	}
 
 	return collection, nil
