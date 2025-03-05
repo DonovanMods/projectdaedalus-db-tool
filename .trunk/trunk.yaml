@@ -17,9 +17,12 @@ runtimes:
     - python@3.10.8
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
 lint:
+  disabled:
+    - gofmt
   enabled:
+    - gofumpt@0.5.0
+    - trufflehog-git@3.88.14
     - checkov@3.2.379
-    - gofmt@1.20.4
     - golangci-lint@1.64.6
     - hadolint@2.12.1-beta
     - markdownlint@0.44.0
@@ -32,6 +35,8 @@ actions:
   disabled:
     - trunk-announce
     - trunk-check-pre-push
-    - trunk-fmt-pre-commit
   enabled:
+    - trufflehog-pre-commit
+    - trunk-fmt-pre-commit
+    - trunk-check-pre-commit
     - trunk-upgrade-available
