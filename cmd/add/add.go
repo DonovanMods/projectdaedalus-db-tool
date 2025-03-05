@@ -47,8 +47,6 @@ func doAdd(cmd *cobra.Command, args []string, collection func() (firestore.MetaL
 		logger.Fatal(errors.New("no item given to add"))
 	}
 
-	newItem := args[0]
-
 	meta, err := collection()
 	if err != nil {
 		logger.Fatal(err)
@@ -59,8 +57,13 @@ func doAdd(cmd *cobra.Command, args []string, collection func() (firestore.MetaL
 		return
 	}
 
-	if err = meta.Update("", newItem); err != nil {
-		logger.Fatal(err)
+	for _, item := range args {
+		if err = meta.Update("", item); err != nil {
+			if errors.Is(err, firestore.ErrDuplicate) {
+				continue
+			}
+			logger.Fatal(err)
+		}
 	}
 
 	if err := firestore.Commit(); err != nil {

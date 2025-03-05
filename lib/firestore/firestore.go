@@ -13,18 +13,21 @@ import (
 	"google.golang.org/api/option"
 )
 
-var fsClient *gfs.Client
-var dbCollectionTypes = map[string]*metaList{
-	"repositories": &repo,
-	"modinfo":      &modInfo,
-	"toolinfo":     &toolInfo,
-}
+var (
+	ErrDuplicate      = errors.New("item already exists")
+	fsClient          *gfs.Client
+	dbCollectionTypes = map[string]*metaList{
+		"repositories": &repo,
+		"modinfo":      &modInfo,
+		"toolinfo":     &toolInfo,
+	}
+)
 
-type ConfigNotFoundError struct {
+type ErrConfigNotFound struct {
 	item string
 }
 
-func (e ConfigNotFoundError) Error() string {
+func (e ErrConfigNotFound) Error() string {
 	return fmt.Sprintf("config item %q not found", e.item)
 }
 
@@ -78,7 +81,7 @@ func getCollection(collectionString string) (string, error) {
 	collection := viper.GetString(collectionString)
 
 	if collection == "" {
-		return "", &ConfigNotFoundError{item: collectionString}
+		return "", &ErrConfigNotFound{item: collectionString}
 	}
 
 	return collection, nil

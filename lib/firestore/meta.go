@@ -23,9 +23,11 @@ type MetaList interface {
 
 const collectionBase = "firebase.collections.meta"
 
-var repo = metaList{name: "repositories"}
-var modInfo = metaList{name: "modinfo"}
-var toolInfo = metaList{name: "toolinfo"}
+var (
+	repo     = metaList{name: "repositories"}
+	modInfo  = metaList{name: "modinfo"}
+	toolInfo = metaList{name: "toolinfo"}
+)
 
 type metaList struct {
 	Items []string `firestore:"list"`
@@ -89,7 +91,8 @@ func (m *metaList) Update(item string, newItem string) error {
 	}
 
 	if slices.Contains(m.Items, newItem) {
-		return fmt.Errorf("%q already exists in %s", newItem, m.name)
+		logger.Warn(fmt.Sprintf("%q already exists in %s", newItem, m.name))
+		return ErrDuplicate
 	}
 
 	m.Items = append(m.Items, newItem)
@@ -122,7 +125,7 @@ func (m *metaList) String() string {
 }
 
 func (m *metaList) MarshalJSON() ([]byte, error) {
-	var out = []byte{}
+	out := []byte{}
 
 	if j, err := json.MarshalIndent(m.Items, "  ", "  "); err != nil {
 		return out, err
