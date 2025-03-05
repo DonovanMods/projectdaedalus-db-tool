@@ -49,7 +49,7 @@ func getClient() (*gfs.Client, error) {
 		return fsClient, nil
 	}
 
-	logger.Info("Initializing Firestore client")
+	logger.Info("initializing Firestore client")
 
 	projectID := viper.GetString("firebase.credentials.project_id")
 	credsJson, err := json.Marshal(viper.Get("firebase.credentials"))
@@ -74,11 +74,20 @@ func getClient() (*gfs.Client, error) {
 	return fsClient, nil
 }
 
-func getDocument(collectionString string) (*gfs.DocumentSnapshot, error) {
+func getCollection(collectionString string) (string, error) {
 	collection := viper.GetString(collectionString)
 
 	if collection == "" {
-		return nil, &ConfigEmpty{Item: collectionString}
+		return "", &ConfigEmpty{Item: collectionString}
+	}
+
+	return collection, nil
+}
+
+func getDocument(collectionString string) (*gfs.DocumentSnapshot, error) {
+	collection, err := getCollection(collectionString)
+	if err != nil {
+		return nil, err
 	}
 
 	client, err := getClient()
@@ -86,7 +95,7 @@ func getDocument(collectionString string) (*gfs.DocumentSnapshot, error) {
 		return nil, err
 	}
 
-	logger.Info(fmt.Sprintf("Fetching documents from %q", collection))
+	logger.Info(fmt.Sprintf("fetching documents from %q", collection))
 
 	return client.Doc(collection).Get(context.Background())
 }

@@ -13,22 +13,22 @@ import (
 )
 
 type MetaList interface {
+	fmt.Stringer
+	json.Marshaler
 	Commit() (*gfs.WriteResult, error)
-	Items() []string
-	Json() (string, error)
-	Name() string
 	Remove(item string) error
-	String() string
 	Update(item string, newItem string) error
 }
+
+const collectionBase = "firebase.collections.meta"
 
 var repo = metaList{name: "repositories"}
 var modInfo = metaList{name: "modinfo"}
 var toolInfo = metaList{name: "toolinfo"}
 
 type metaList struct {
-	List  []string `firestore:"list"`
-	name  string
+	Items []string `firestore:"list"`
+	name  string   `firestore:"-" json:"-"`
 	dirty bool
 }
 
@@ -38,9 +38,19 @@ func (m *metaList) Commit() (*gfs.WriteResult, error) {
 	}
 
 	if m.dirty {
-		logger.Info(fmt.Sprintf("committing changes to %q", m.name))
+		fsCollection, err := getCollection(m.configCollectionString())
+		if err != nil {
+			return nil, fmt.Errorf("getCollection: %w", err)
+		}
 
-		return fsClient.Collection(m.collectionName()).Doc("list").Set(context.Background(), m)
+		// Split the collection string into collection and doc strings for Firestore
+		db := strings.Split(fsCollection, "/")
+		collection := db[0]
+		doc := strings.Join(db[1:], "/")
+
+		logger.Info(fmt.Sprintf("committing changes to %q", fsCollection))
+
+		return fsClient.Collection(collection).Doc(doc).Set(context.Background(), m)
 	}
 
 	return nil, nil
@@ -55,13 +65,27 @@ func (m *metaList) Update(item string, newItem string) error {
 		return errors.New("newItem cannot be blank in call to Update()")
 	}
 
-	if item != "" && slices.Contains(m.List, item) {
-		if err := m.Remove(item); err != nil {
-			return err
+	if item == newItem {
+		return fmt.Errorf("%q is the same as %q in %s", item, newItem, m.name)
+	}
+
+	if item == "" {
+		logger.Info(fmt.Sprintf("adding %q to %s", newItem, m.name))
+	} else {
+		logger.Info(fmt.Sprintf("updating %q with %q in %s", item, newItem, m.name))
+
+		if slices.Contains(m.Items, item) {
+			if err := m.Remove(item); err != nil {
+				return err
+			}
 		}
 	}
 
-	m.List = append(m.List, newItem)
+	if slices.Contains(m.Items, newItem) {
+		return fmt.Errorf("%q already exists in %s", newItem, m.name)
+	}
+
+	m.Items = append(m.Items, newItem)
 	m.dirty = true
 
 	return nil
@@ -73,9 +97,11 @@ func (m *metaList) Remove(item string) error {
 		return errors.New("item cannot be blank in call to Remove()")
 	}
 
-	for i, v := range m.List {
+	logger.Info(fmt.Sprintf("removing %q from %s", item, m.name))
+
+	for i, v := range m.Items {
 		if v == item {
-			m.List = slices.Delete(m.List, i, i)
+			m.Items = slices.Delete(m.Items, i, i)
 		}
 	}
 
@@ -85,33 +111,25 @@ func (m *metaList) Remove(item string) error {
 }
 
 func (m *metaList) String() string {
-	return strings.Join(m.List, "\n")
+	return strings.Join(m.Items, "\n")
 }
 
-func (m *metaList) Json() (string, error) {
-	if j, err := json.MarshalIndent(m.List, "  ", "  "); err != nil {
-		return "", err
+func (m *metaList) MarshalJSON() ([]byte, error) {
+	var out = []byte{}
+
+	if j, err := json.MarshalIndent(m.Items, "  ", "  "); err != nil {
+		return out, err
 	} else {
-		return fmt.Sprintf("{\n  %q: %s\n}\n", m.name, string(j)), nil
+		return fmt.Appendf(out, "{\n  %q: %s\n}\n", m.name, string(j)), nil
 	}
 }
 
-// Items returns the slice of items
-func (m *metaList) Items() []string {
-	return m.List
-}
-
-// Name returns the name of the list
-func (m *metaList) Name() string {
-	return m.name
-}
-
-func (m *metaList) collectionName() string {
-	return fmt.Sprintf("firebase.collections.meta.%s", m.name)
+func (m *metaList) configCollectionString() string {
+	return collectionBase + "." + m.name
 }
 
 func ModInfo() (MetaList, error) {
-	if modInfo.List != nil {
+	if modInfo.Items != nil {
 		return &modInfo, nil
 	}
 
@@ -119,7 +137,7 @@ func ModInfo() (MetaList, error) {
 }
 
 func Repos() (MetaList, error) {
-	if repo.List != nil {
+	if repo.Items != nil {
 		return &repo, nil
 	}
 
@@ -127,7 +145,7 @@ func Repos() (MetaList, error) {
 }
 
 func ToolInfo() (MetaList, error) {
-	if toolInfo.List != nil {
+	if toolInfo.Items != nil {
 		return &toolInfo, nil
 	}
 
@@ -135,9 +153,9 @@ func ToolInfo() (MetaList, error) {
 }
 
 func getDataFor(structPtr *metaList) (*metaList, error) {
-	docSnap, err := getDocument((*structPtr).collectionName())
+	docSnap, err := getDocument((*structPtr).configCollectionString())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getDocument: %w", err)
 	}
 
 	if !docSnap.Exists() {
@@ -145,7 +163,7 @@ func getDataFor(structPtr *metaList) (*metaList, error) {
 	}
 
 	if err := docSnap.DataTo(&structPtr); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("DataTo: %w", err)
 	}
 
 	return structPtr, nil

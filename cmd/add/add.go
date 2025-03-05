@@ -49,8 +49,6 @@ func doAdd(cmd *cobra.Command, args []string, collection func() (firestore.MetaL
 
 	newItem := args[0]
 
-	logger.Info(fmt.Sprintf("Adding: %q", newItem))
-
 	meta, err := collection()
 	if err != nil {
 		logger.Fatal(err)
@@ -61,7 +59,7 @@ func doAdd(cmd *cobra.Command, args []string, collection func() (firestore.MetaL
 		return
 	}
 
-	if err = meta.Update("", args[0]); err != nil {
+	if err = meta.Update("", newItem); err != nil {
 		logger.Fatal(err)
 	}
 

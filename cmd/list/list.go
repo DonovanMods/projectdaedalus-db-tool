@@ -51,10 +51,10 @@ func doList(cmd *cobra.Command, args []string, collection func() (firestore.Meta
 	}
 
 	if jsonFlag, _ := cmd.Flags().GetBool("json"); jsonFlag {
-		if j, err := meta.Json(); err != nil {
+		if j, err := meta.MarshalJSON(); err != nil {
 			logger.Fatal(err)
 		} else {
-			fmt.Println(j)
+			fmt.Println(string(j))
 		}
 	} else {
 		fmt.Println(meta.String())

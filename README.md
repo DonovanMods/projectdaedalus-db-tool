@@ -27,8 +27,6 @@ To use this tool, you need to configure it with your database connection details
     "collections": {
       "meta": {
         "modinfo": "meta/modinfo",
-        "repositories": "meta/repos",
-        "status": "meta/status",
         "toolinfo": "meta/toolinfo"
       },
       "mods": "mods",
