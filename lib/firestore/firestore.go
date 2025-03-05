@@ -14,7 +14,6 @@ import (
 )
 
 var (
-	ErrDuplicate      = errors.New("item already exists")
 	fsClient          *gfs.Client
 	dbCollectionTypes = map[string]*metaList{
 		"repositories": &repo,

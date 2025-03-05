@@ -8,9 +8,12 @@ import (
 	"strings"
 
 	gfs "cloud.google.com/go/firestore"
+	urlverifier "github.com/davidmytton/url-verifier"
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
 	"golang.org/x/exp/slices"
 )
+
+var ErrDuplicate = errors.New("item already exists")
 
 type MetaList interface {
 	fmt.Stringer
@@ -95,6 +98,13 @@ func (m *metaList) Update(item string, newItem string) error {
 		return ErrDuplicate
 	}
 
+	// Validate the URL
+	logger.Info(fmt.Sprintf("validating %q", newItem))
+
+	if err := verifyURL(newItem); err != nil {
+		return fmt.Errorf("%q is not a valid URL: %w", newItem, err)
+	}
+
 	m.Items = append(m.Items, newItem)
 	m.dirty = true
 
@@ -121,7 +131,12 @@ func (m *metaList) Remove(item string) error {
 }
 
 func (m *metaList) String() string {
-	return strings.Join(m.Items, "\n")
+	out := []string{}
+
+	for i, item := range m.Items {
+		out = append(out, fmt.Sprintf("%04d: %s", i+1, item))
+	}
+	return strings.Join(out, "\n")
 }
 
 func (m *metaList) MarshalJSON() ([]byte, error) {
@@ -177,4 +192,19 @@ func getDataFor(structPtr *metaList) (*metaList, error) {
 	}
 
 	return structPtr, nil
+}
+
+func verifyURL(url string) error {
+	verifier := urlverifier.NewVerifier()
+	verifier.EnableHTTPCheck()
+	ret, err := verifier.Verify(url)
+	if err != nil {
+		return err
+	}
+
+	if !ret.HTTP.IsSuccess {
+		return fmt.Errorf("could not reach %q; code: %d", url, ret.HTTP.StatusCode)
+	}
+
+	return nil
 }
