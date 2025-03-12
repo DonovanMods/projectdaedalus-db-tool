@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	gfs "cloud.google.com/go/firestore"
-	urlverifier "github.com/davidmytton/url-verifier"
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
 	"golang.org/x/exp/slices"
 )
@@ -24,7 +23,7 @@ type MetaList interface {
 	Update(item string, newItem string) error
 }
 
-const collectionBase = "firebase.collections.meta"
+const metaCollectionBase = "firebase.collections.meta"
 
 var (
 	repo     = metaList{name: "repositories"}
@@ -108,6 +107,9 @@ func (m *metaList) Update(item string, newItem string) error {
 	m.Items = append(m.Items, newItem)
 	m.dirty = true
 
+	// TODO: Add new entries depending on type
+	// e.g. modinfo, toolinfo, etc.
+
 	return nil
 }
 
@@ -127,6 +129,7 @@ func (m *metaList) Remove(item string) error {
 
 	m.dirty = true
 
+	// TODO: Remove entries depending on type (modinfo, toolinfo, etc.)
 	return nil
 }
 
@@ -150,9 +153,12 @@ func (m *metaList) MarshalJSON() ([]byte, error) {
 }
 
 func (m *metaList) configCollectionString() string {
-	return collectionBase + "." + m.name
+	return metaCollectionBase + "." + m.name
 }
 
+/*
+// Public Functions
+*/
 func ModInfo() (MetaList, error) {
 	if modInfo.Items != nil {
 		return &modInfo, nil
@@ -177,6 +183,9 @@ func ToolInfo() (MetaList, error) {
 	return getDataFor(&toolInfo)
 }
 
+/*
+// Private Functions
+*/
 func getDataFor(structPtr *metaList) (*metaList, error) {
 	docSnap, err := getDocument((*structPtr).configCollectionString())
 	if err != nil {
@@ -191,20 +200,7 @@ func getDataFor(structPtr *metaList) (*metaList, error) {
 		return nil, fmt.Errorf("DataTo: %w", err)
 	}
 
+	logger.Info(fmt.Sprintf("successfully retrieved %s list", structPtr.name))
+
 	return structPtr, nil
-}
-
-func verifyURL(url string) error {
-	verifier := urlverifier.NewVerifier()
-	verifier.EnableHTTPCheck()
-	ret, err := verifier.Verify(url)
-	if err != nil {
-		return err
-	}
-
-	if !ret.HTTP.IsSuccess {
-		return fmt.Errorf("could not reach %q; code: %d", url, ret.HTTP.StatusCode)
-	}
-
-	return nil
 }

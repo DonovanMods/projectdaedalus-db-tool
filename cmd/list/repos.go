@@ -31,7 +31,7 @@ var reposCmd = &cobra.Command{
 	Use:   "repos",
 	Short: "Display a list of all repositories",
 	Run: func(cmd *cobra.Command, args []string) {
-		doList(cmd, args, firestore.Repos)
+		doMetaList(cmd, args, firestore.Repos)
 	},
 }
 

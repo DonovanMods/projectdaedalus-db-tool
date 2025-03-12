@@ -31,7 +31,7 @@ var repoCmd = &cobra.Command{
 	Use:   "repo <URL>",
 	Short: "A convienence utility to add Mods and/or Tools with a single URL",
 	Run: func(cmd *cobra.Command, args []string) {
-		doAdd(cmd, args, firestore.Repos)
+		doMetaAdd(cmd, args, firestore.Repos)
 	},
 }
 

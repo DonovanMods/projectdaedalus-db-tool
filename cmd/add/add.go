@@ -40,7 +40,7 @@ var AddCmd = &cobra.Command{
 	},
 }
 
-func doAdd(cmd *cobra.Command, args []string, collection func() (firestore.MetaList, error)) {
+func doMetaAdd(cmd *cobra.Command, args []string, collection func() (firestore.MetaList, error)) {
 	_ = cmd // Unused for now
 
 	if len(args) == 0 {

@@ -31,7 +31,7 @@ var modinfoCmd = &cobra.Command{
 	Use:   "modinfo <URL>",
 	Short: "Adds a ModInfo URL to the database",
 	Run: func(cmd *cobra.Command, args []string) {
-		doAdd(cmd, args, firestore.ModInfo)
+		doMetaAdd(cmd, args, firestore.ModInfo)
 	},
 }
 

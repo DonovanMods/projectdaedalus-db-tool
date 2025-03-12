@@ -30,42 +30,42 @@ import (
 )
 
 // delCmd represents the del command
-var ListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "Commands to list database entries",
+var modsCmd = &cobra.Command{
+	Use:   "mods",
+	Short: "Display a list of all mods",
 	Run: func(cmd *cobra.Command, args []string) {
-		_ = cmd.Help()
+		doModsList(cmd, args, firestore.ModList)
 	},
 }
 
-func doMetaList(cmd *cobra.Command, args []string, collection func() (firestore.MetaList, error)) {
-	_ = args // Unused for now
+func init() {
+	ListCmd.AddCommand(modsCmd)
+}
 
-	meta, err := collection()
+func doModsList(cmd *cobra.Command, args []string, collection func() (firestore.Mods, error)) {
+	_ = args // Unused for now -- will be used for Searching later
+
+	mods, err := collection()
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	if meta == nil {
+	if mods == nil {
 		return
 	}
 
-	if meta.Count() == 0 {
+	if mods.Count() == 0 {
 		logger.Warn("No items returned")
 		return
 	}
 
 	if jsonFlag, _ := cmd.Flags().GetBool("json"); jsonFlag {
-		if j, err := meta.MarshalJSON(); err != nil {
+		if j, err := mods.MarshalJSON(); err != nil {
 			logger.Fatal(err)
 		} else {
 			fmt.Println(string(j))
 		}
 	} else {
-		fmt.Println(meta.String())
+		fmt.Println(mods.String())
 	}
-}
-
-func init() {
-	ListCmd.PersistentFlags().BoolP("json", "j", false, "Output in JSON format")
 }

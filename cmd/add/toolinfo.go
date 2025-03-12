@@ -31,7 +31,7 @@ var toolinfoCmd = &cobra.Command{
 	Use:   "toolinfo <URL>",
 	Short: "Adds a ToolInfo URL to the database",
 	Run: func(cmd *cobra.Command, args []string) {
-		doAdd(cmd, args, firestore.ToolInfo)
+		doMetaAdd(cmd, args, firestore.ToolInfo)
 	},
 }
 

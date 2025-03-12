@@ -8,6 +8,7 @@ import (
 
 	"cloud.google.com/go/auth/credentials"
 	gfs "cloud.google.com/go/firestore"
+	urlverifier "github.com/davidmytton/url-verifier"
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
 	"github.com/spf13/viper"
 	"google.golang.org/api/option"
@@ -100,4 +101,34 @@ func getDocument(collectionString string) (*gfs.DocumentSnapshot, error) {
 	logger.Info(fmt.Sprintf("fetching documents from %q", collection))
 
 	return client.Doc(collection).Get(context.Background())
+}
+
+func getDocuments(collectionString string) (*gfs.DocumentIterator, error) {
+	collection, err := getCollection(collectionString)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := getClient()
+	if err != nil {
+		return nil, err
+	}
+
+	return client.Collection(collection).Documents(context.Background()), nil
+}
+
+func verifyURL(url string) error {
+	verifier := urlverifier.NewVerifier()
+	verifier.EnableHTTPCheck()
+
+	ret, err := verifier.Verify(url)
+	if err != nil {
+		return err
+	}
+
+	if !ret.HTTP.IsSuccess {
+		return fmt.Errorf("could not reach %q; code: %d", url, ret.HTTP.StatusCode)
+	}
+
+	return nil
 }
