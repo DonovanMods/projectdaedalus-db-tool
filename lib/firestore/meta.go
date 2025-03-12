@@ -14,27 +14,67 @@ import (
 
 var ErrDuplicate = errors.New("item already exists")
 
-type MetaList interface {
-	fmt.Stringer
-	json.Marshaler
-	Commit() (*gfs.WriteResult, error)
-	Count() int
-	Remove(item string) error
-	Update(item string, newItem string) error
-}
-
 const metaCollectionBase = "firebase.collections.meta"
 
+// Data Caches
 var (
-	repo     = metaList{name: "repositories"}
-	modInfo  = metaList{name: "modinfo"}
-	toolInfo = metaList{name: "toolinfo"}
+	repoCache     = metaList{name: "repositories"}
+	modInfoCache  = metaList{name: "modinfo"}
+	toolInfoCache = metaList{name: "toolinfo"}
 )
 
 type metaList struct {
 	Items []string `firestore:"list"`
 	name  string   `firestore:"-" json:"-"`
 	dirty bool
+}
+
+func (m *metaList) Fetch() error {
+	if m.Items != nil {
+		logger.Info(fmt.Sprintf("Using cached data for %s", m.name))
+		return nil
+	}
+
+	docSnap, err := getDocument(m.configCollectionString())
+	if err != nil {
+		return fmt.Errorf("getDocument: %w", err)
+	}
+
+	if !docSnap.Exists() {
+		return errors.New("document does not exist")
+	}
+
+	if err := docSnap.DataTo(&m); err != nil {
+		return fmt.Errorf("DataTo: %w", err)
+	}
+
+	logger.Info(fmt.Sprintf("successfully retrieved %s list", m.name))
+
+	return nil
+}
+
+// Add adds or updates an item in the list
+// If item is already in the list, it will be removed and replaced
+func (m *metaList) Add(item string) error {
+	if item == "" {
+		return errors.New("item cannot be blank in call to Add()")
+	}
+
+	if err := verifyURL(item); err != nil {
+		return fmt.Errorf("%q is not a valid URL: %w", item, err)
+	}
+
+	if slices.Contains(m.Items, item) {
+		logger.Warn(fmt.Sprintf("%q already exists in %s", item, m.name))
+		return ErrDuplicate
+	}
+
+	logger.Info(fmt.Sprintf("adding %q to %s", item, m.name))
+
+	m.Items = append(m.Items, item)
+	m.dirty = true
+
+	return nil
 }
 
 // Commit writes the list to Firestore
@@ -65,52 +105,6 @@ func (m *metaList) Commit() (*gfs.WriteResult, error) {
 // Count returns the number of items in the list
 func (m *metaList) Count() int {
 	return len(m.Items)
-}
-
-// Update updates or adds an item to the list
-// If item is already in the list, it will be removed and replaced with newItem
-// if item is blank, newItem will be added
-func (m *metaList) Update(item string, newItem string) error {
-	// do not add blank items
-	if newItem == "" {
-		return errors.New("newItem cannot be blank in call to Update()")
-	}
-
-	if item == newItem {
-		return fmt.Errorf("%q is the same as %q in %s", item, newItem, m.name)
-	}
-
-	if item == "" {
-		logger.Info(fmt.Sprintf("adding %q to %s", newItem, m.name))
-	} else {
-		logger.Info(fmt.Sprintf("updating %q with %q in %s", item, newItem, m.name))
-
-		if slices.Contains(m.Items, item) {
-			if err := m.Remove(item); err != nil {
-				return err
-			}
-		}
-	}
-
-	if slices.Contains(m.Items, newItem) {
-		logger.Warn(fmt.Sprintf("%q already exists in %s", newItem, m.name))
-		return ErrDuplicate
-	}
-
-	// Validate the URL
-	logger.Info(fmt.Sprintf("validating %q", newItem))
-
-	if err := verifyURL(newItem); err != nil {
-		return fmt.Errorf("%q is not a valid URL: %w", newItem, err)
-	}
-
-	m.Items = append(m.Items, newItem)
-	m.dirty = true
-
-	// TODO: Add new entries depending on type
-	// e.g. modinfo, toolinfo, etc.
-
-	return nil
 }
 
 // Remove an item from the list
@@ -159,48 +153,29 @@ func (m *metaList) configCollectionString() string {
 /*
 // Public Functions
 */
-func ModInfo() (MetaList, error) {
-	if modInfo.Items != nil {
-		return &modInfo, nil
-	}
-
-	return getDataFor(&modInfo)
-}
-
-func Repos() (MetaList, error) {
-	if repo.Items != nil {
-		return &repo, nil
-	}
-
-	return getDataFor(&repo)
-}
-
-func ToolInfo() (MetaList, error) {
-	if toolInfo.Items != nil {
-		return &toolInfo, nil
-	}
-
-	return getDataFor(&toolInfo)
-}
-
-/*
-// Private Functions
-*/
-func getDataFor(structPtr *metaList) (*metaList, error) {
-	docSnap, err := getDocument((*structPtr).configCollectionString())
+func ModInfo() (DBList[string], error) {
+	err := modInfoCache.Fetch()
 	if err != nil {
-		return nil, fmt.Errorf("getDocument: %w", err)
+		return nil, fmt.Errorf("Fetch: %w", err)
 	}
 
-	if !docSnap.Exists() {
-		return nil, errors.New("document does not exist")
+	return &modInfoCache, nil
+}
+
+func Repos() (DBList[string], error) {
+	err := repoCache.Fetch()
+	if err != nil {
+		return nil, fmt.Errorf("Fetch: %w", err)
 	}
 
-	if err := docSnap.DataTo(&structPtr); err != nil {
-		return nil, fmt.Errorf("DataTo: %w", err)
+	return &repoCache, nil
+}
+
+func ToolInfo() (DBList[string], error) {
+	err := toolInfoCache.Fetch()
+	if err != nil {
+		return nil, fmt.Errorf("Fetch: %w", err)
 	}
 
-	logger.Info(fmt.Sprintf("successfully retrieved %s list", structPtr.name))
-
-	return structPtr, nil
+	return &toolInfoCache, nil
 }

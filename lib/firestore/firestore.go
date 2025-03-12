@@ -10,16 +10,31 @@ import (
 	gfs "cloud.google.com/go/firestore"
 	urlverifier "github.com/davidmytton/url-verifier"
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
+	"github.com/donovanmods/projectdaedalus-db-tool/lib/mod"
 	"github.com/spf13/viper"
 	"google.golang.org/api/option"
 )
 
+type SoM interface {
+	string | mod.Mod
+}
+
+type DBList[SM SoM] interface {
+	fmt.Stringer
+	json.Marshaler
+	Add(item SM) error
+	Commit() (*gfs.WriteResult, error)
+	Count() int
+	Fetch() error
+	Remove(item SM) error
+}
+
 var (
-	fsClient          *gfs.Client
-	dbCollectionTypes = map[string]*metaList{
-		"repositories": &repo,
-		"modinfo":      &modInfo,
-		"toolinfo":     &toolInfo,
+	fsClient              *gfs.Client
+	dbMetaCollectionTypes = map[string]DBList[string]{
+		"repositories": &repoCache,
+		"modinfo":      &modInfoCache,
+		"toolinfo":     &toolInfoCache,
 	}
 )
 
@@ -38,15 +53,51 @@ func Commit() error {
 
 	logger.Info("committing All Firestore changes")
 
-	for _, collection := range dbCollectionTypes {
+	for _, collection := range dbMetaCollectionTypes {
 		if _, err := collection.Commit(); err != nil {
 			return err
+		}
+	}
+
+	for _, m := range modCache.Items {
+		switch m.State() {
+		case mod.StateNew:
+			if _, _, err := fsClient.Collection("mods").Add(context.Background(), m); err != nil {
+				return err
+			}
+		case mod.StateUpdated:
+			if _, err := fsClient.Collection("mods").Doc(m.ID).Set(context.Background(), m); err != nil {
+				return err
+			}
+		case mod.StateDeleted:
+			if _, err := fsClient.Collection("mods").Doc(m.ID).Delete(context.Background()); err != nil {
+				return err
+			}
 		}
 	}
 
 	return fsClient.Close()
 }
 
+func FetchAll() error {
+	// Fetch Meta lists
+	for _, collection := range dbMetaCollectionTypes {
+		if err := collection.Fetch(); err != nil {
+			return err
+		}
+	}
+
+	// Fetch Mods
+	if err := modCache.Fetch(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/*
+// Private functions
+*/
 func getClient() (*gfs.Client, error) {
 	if fsClient != nil {
 		return fsClient, nil
@@ -98,7 +149,7 @@ func getDocument(collectionString string) (*gfs.DocumentSnapshot, error) {
 		return nil, err
 	}
 
-	logger.Info(fmt.Sprintf("fetching documents from %q", collection))
+	logger.Info(fmt.Sprintf("fetching document from %q", collection))
 
 	return client.Doc(collection).Get(context.Background())
 }
@@ -114,12 +165,16 @@ func getDocuments(collectionString string) (*gfs.DocumentIterator, error) {
 		return nil, err
 	}
 
+	logger.Info(fmt.Sprintf("fetching documents from %q", collection))
+
 	return client.Collection(collection).Documents(context.Background()), nil
 }
 
 func verifyURL(url string) error {
 	verifier := urlverifier.NewVerifier()
 	verifier.EnableHTTPCheck()
+
+	logger.Info(fmt.Sprintf("validating %q", url))
 
 	ret, err := verifier.Verify(url)
 	if err != nil {

@@ -26,6 +26,7 @@ import (
 
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/firestore"
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
+	"github.com/donovanmods/projectdaedalus-db-tool/lib/mod"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +43,7 @@ func init() {
 	ListCmd.AddCommand(modsCmd)
 }
 
-func doModsList(cmd *cobra.Command, args []string, collection func() (firestore.Mods, error)) {
+func doModsList(cmd *cobra.Command, args []string, collection func() (firestore.DBList[mod.Mod], error)) {
 	_ = args // Unused for now -- will be used for Searching later
 
 	mods, err := collection()

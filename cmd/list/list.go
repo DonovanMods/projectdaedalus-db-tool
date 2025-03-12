@@ -38,7 +38,7 @@ var ListCmd = &cobra.Command{
 	},
 }
 
-func doMetaList(cmd *cobra.Command, args []string, collection func() (firestore.MetaList, error)) {
+func doMetaList(cmd *cobra.Command, args []string, collection func() (firestore.DBList[string], error)) {
 	_ = args // Unused for now
 
 	meta, err := collection()

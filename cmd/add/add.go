@@ -40,7 +40,7 @@ var AddCmd = &cobra.Command{
 	},
 }
 
-func doMetaAdd(cmd *cobra.Command, args []string, collection func() (firestore.MetaList, error)) {
+func doMetaAdd(cmd *cobra.Command, args []string, collection func() (firestore.DBList[string], error)) {
 	_ = cmd // Unused for now
 
 	if len(args) == 0 {
@@ -58,7 +58,7 @@ func doMetaAdd(cmd *cobra.Command, args []string, collection func() (firestore.M
 	}
 
 	for _, item := range args {
-		if err = meta.Update("", item); err != nil {
+		if err = meta.Add(item); err != nil {
 			if errors.Is(err, firestore.ErrDuplicate) {
 				continue
 			}
