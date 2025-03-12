@@ -10,9 +10,9 @@ import (
 func TestNew(t *testing.T) {
 	m := (&mod.Mod{}).New()
 	assert.NotNil(t, m)
-	assert.Equal(t, mod.New, m.Meta.State)
-	assert.Empty(t, m.Meta.Status["Errors"])
-	assert.Empty(t, m.Meta.Status["Warnings"])
+	assert.Equal(t, mod.StateNew, m.State())
+	assert.Empty(t, m.Meta.Status.Errors)
+	assert.Empty(t, m.Meta.Status.Warnings)
 }
 
 func TestString(t *testing.T) {
@@ -20,29 +20,36 @@ func TestString(t *testing.T) {
 	assert.Equal(t, "Test Mod v1.0 by Test Author", m.String())
 }
 
-func TestToJSON(t *testing.T) {
-	m := &mod.Mod{Name: "Test Mod"}
-	data, err := m.ToJSON()
-	assert.NoError(t, err)
-	assert.Contains(t, string(data), `"name":"Test Mod"`)
-}
-
-func TestFromJSON(t *testing.T) {
-	data := []byte(`{"name":"Test Mod"}`)
-	m := &mod.Mod{}
-	err := m.FromJSON(data)
-	assert.NoError(t, err)
-	assert.Equal(t, "Test Mod", m.Name)
-}
-
 func TestState(t *testing.T) {
 	m := &mod.Mod{}
-	assert.Equal(t, mod.Unmodified, m.Meta.State)
+	assert.Equal(t, mod.StateUnmodified, m.State())
+}
+
+func TestSetState(t *testing.T) {
+	m := &mod.Mod{}
+	m.SetState(mod.StateUpdated)
+	assert.Equal(t, mod.StateUpdated, m.State())
+}
+
+func TestStateString(t *testing.T) {
+	m := &mod.Mod{}
+	assert.Equal(t, "Unmodified", m.StateString())
+	m.SetState(mod.StateNew)
+	assert.Equal(t, "New", m.StateString())
 }
 
 func TestDirty(t *testing.T) {
 	m := &mod.Mod{}
 	assert.False(t, m.Dirty())
-	m.Meta.State = mod.Updated
+	m.SetState(mod.StateUpdated)
 	assert.True(t, m.Dirty())
+}
+
+func TestValid(t *testing.T) {
+	m := &mod.Mod{}
+	assert.True(t, m.Valid())
+	m.AddWarning("Test Warning")
+	assert.True(t, m.Valid())
+	m.AddError("Test Error")
+	assert.False(t, m.Valid())
 }

@@ -106,14 +106,13 @@ func getMods(mods *mods) (*mods, error) {
 			return nil, err
 		}
 
-		fmt.Println(doc.Data())
-
 		m := (mod.Mod{}).New()
 		if err := doc.DataTo(&m); err != nil {
 			return nil, fmt.Errorf("DataTo: %w", err)
 		}
 		logger.Info(fmt.Sprintf("retrieved %s", m.Name))
-		m.Meta.State = mod.Unmodified
+		m.SetState(mod.StateUnmodified)
+		m.ID = doc.Ref.ID
 		mods.Items = append(mods.Items, m)
 	}
 

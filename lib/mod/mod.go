@@ -1,39 +1,43 @@
 package mod
 
 import (
-	"encoding/json"
 	"fmt"
 )
 
-type (
-	mState  int
-	mStatus map[string][]string
-)
+type mState int
+
+var StateString = map[mState]string{
+	StateUnmodified: "Unmodified",
+	StateNew:        "New",
+	StateUpdated:    "Updated",
+	StateDeleted:    "Deleted",
+}
 
 const (
-	Unmodified mState = iota
-	New
-	Updated
-	Deleted
+	StateUnmodified mState = iota
+	StateNew
+	StateUpdated
+	StateDeleted
 )
 
 /*
-	{
-	  "name": "First Mod Name",
-	  "author": "whatever name you want as the Author",
-	  "version": "1.0",
-	  "compatibility": "w57",
-	  "description": "A description of what your mod does",
-	  "files": {
-	    "pak": "the direct download URL for your PAK mod file",
-	    "exmodz": "the direct download URL for your EXMODZ mod file"
-	  },
-	  "imageURL": "A direct download URL to an image that will be displayed in the mod list (optional)",
-	  "readmeURL": "A link to the 'raw' version of your mod's README"
-	},
+	 modinfo format:
+		{
+		  "name": "First Mod Name",
+		  "author": "whatever name you want as the Author",
+		  "version": "1.0",
+		  "compatibility": "w57",
+		  "description": "A description of what your mod does",
+		  "files": {
+		    "pak": "the direct download URL for your PAK mod file",
+		    "exmodz": "the direct download URL for your EXMODZ mod file"
+		  },
+		  "imageURL": "A direct download URL to an image that will be displayed in the mod list (optional)",
+		  "readmeURL": "A link to the 'raw' version of your mod's README"
+		},
 */
 type Mod struct {
-	docID         string `firestore:"-" json:"-"`
+	ID            string `firestore:"-" json:"id"`
 	Name          string `firestore:"name" json:"name"`
 	Author        string `firestore:"author" json:"author"`
 	Version       string `firestore:"version" json:"version"`
@@ -46,54 +50,59 @@ type Mod struct {
 		Exmodz string `firestore:"exmodz" json:"exmodz" omitEmpty:"true"`
 	} `firestore:"files" json:"files"`
 	Meta struct {
-		Status mStatus `firestore:"status" json:"status"`
-		State  mState  `firestore:"state" json:"state"`
+		Status struct {
+			Errors   []string `firestore:"errors" json:"errors"`
+			Warnings []string `firestore:"warnings" json:"warnings"`
+		} `firestore:"status" json:"status"`
+		state mState `firestore:"-" json:"-"`
 	} `firestore:"meta" json:"meta"`
 }
 
 func (m Mod) New() Mod {
 	mod := Mod{}
-	// Our firestore DB assumes these two arrays are always present
-	mod.Meta.Status = mStatus{
-		"Errors":   []string{},
-		"Warnings": []string{},
-	}
-	mod.Meta.State = New
+	mod.Meta.Status.Errors = []string{}
+	mod.Meta.Status.Warnings = []string{}
+	mod.SetState(StateNew)
 
 	return mod
-}
-
-func (m *Mod) ID() string {
-	return m.docID
 }
 
 func (m *Mod) String() string {
 	return fmt.Sprintf("%s v%s by %s", m.Name, m.Version, m.Author)
 }
 
-func (m *Mod) ToJSON() ([]byte, error) {
-	return json.Marshal(m)
+func (m *Mod) State() mState {
+	return m.Meta.state
 }
 
-func (m *Mod) FromJSON(data []byte) error {
-	return json.Unmarshal(data, m)
+func (m *Mod) SetState(state mState) {
+	m.Meta.state = state
 }
 
-func (m *Mod) State() string {
-	switch m.Meta.State {
-	case Unmodified:
-		return "Unmodified"
-	case New:
-		return "New"
-	case Updated:
-		return "Updated"
-	case Deleted:
-		return "Deleted"
-	default:
-		return "Unknown"
-	}
+func (m *Mod) StateString() string {
+	return StateString[m.Meta.state]
+}
+
+func (m *Mod) Warnings() []string {
+	return m.Meta.Status.Warnings
+}
+
+func (m *Mod) AddWarning(s string) {
+	m.Meta.Status.Warnings = append(m.Meta.Status.Warnings, s)
+}
+
+func (m *Mod) Errors() []string {
+	return m.Meta.Status.Errors
+}
+
+func (m *Mod) AddError(s string) {
+	m.Meta.Status.Errors = append(m.Meta.Status.Errors, s)
 }
 
 func (m *Mod) Dirty() bool {
-	return m.Meta.State != Unmodified
+	return m.Meta.state != StateUnmodified
+}
+
+func (m *Mod) Valid() bool {
+	return len(m.Meta.Status.Errors) == 0
 }
