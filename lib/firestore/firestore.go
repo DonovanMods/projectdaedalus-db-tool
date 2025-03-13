@@ -26,6 +26,7 @@ type DBList[SM SoM] interface {
 	Commit() (*gfs.WriteResult, error)
 	Count() int
 	Fetch() error
+	Parse(string) error
 	Remove(item SM) error
 }
 
@@ -46,34 +47,23 @@ func (e ErrConfigNotFound) Error() string {
 	return fmt.Sprintf("config item %q not found", e.item)
 }
 
-func Commit() error {
+func CommitAll() error {
 	if fsClient == nil {
 		logger.Panic(errors.New("firestore client not initialized"))
 	}
 
 	logger.Info("committing All Firestore changes")
 
+	// Commit Meta collections
 	for _, collection := range dbMetaCollectionTypes {
 		if _, err := collection.Commit(); err != nil {
 			return err
 		}
 	}
 
-	for _, m := range modCache.Items {
-		switch m.State() {
-		case mod.StateNew:
-			if _, _, err := fsClient.Collection("mods").Add(context.Background(), m); err != nil {
-				return err
-			}
-		case mod.StateUpdated:
-			if _, err := fsClient.Collection("mods").Doc(m.ID).Set(context.Background(), m); err != nil {
-				return err
-			}
-		case mod.StateDeleted:
-			if _, err := fsClient.Collection("mods").Doc(m.ID).Delete(context.Background()); err != nil {
-				return err
-			}
-		}
+	// Commit mod collections
+	if _, err := modCache.Commit(); err != nil {
+		return err
 	}
 
 	return fsClient.Close()

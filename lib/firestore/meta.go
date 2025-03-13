@@ -16,22 +16,37 @@ var ErrDuplicate = errors.New("item already exists")
 
 const metaCollectionBase = "firebase.collections.meta"
 
+type mType int
+
+var MetaNames = map[mType]string{
+	RepoName:     "repositories",
+	ModInfoName:  "modinfo",
+	ToolInfoName: "toolinfo",
+}
+
+const (
+	RepoName mType = iota
+	ModInfoName
+	ToolInfoName
+)
+
 // Data Caches
 var (
-	repoCache     = metaList{name: "repositories"}
-	modInfoCache  = metaList{name: "modinfo"}
-	toolInfoCache = metaList{name: "toolinfo"}
+	repoCache     = metaList{metaType: RepoName}
+	modInfoCache  = metaList{metaType: ModInfoName}
+	toolInfoCache = metaList{metaType: ToolInfoName}
 )
 
 type metaList struct {
-	Items []string `firestore:"list"`
-	name  string   `firestore:"-" json:"-"`
+	Items    []string `firestore:"list"`
+	metaType mType
+	// name     string
 	dirty bool
 }
 
 func (m *metaList) Fetch() error {
 	if m.Items != nil {
-		logger.Info(fmt.Sprintf("Using cached data for %s", m.name))
+		logger.Info(fmt.Sprintf("Using cached data for %s", MetaNames[m.metaType]))
 		return nil
 	}
 
@@ -48,7 +63,7 @@ func (m *metaList) Fetch() error {
 		return fmt.Errorf("DataTo: %w", err)
 	}
 
-	logger.Info(fmt.Sprintf("successfully retrieved %s list", m.name))
+	logger.Info(fmt.Sprintf("successfully retrieved %s list", MetaNames[m.metaType]))
 
 	return nil
 }
@@ -65,14 +80,26 @@ func (m *metaList) Add(item string) error {
 	}
 
 	if slices.Contains(m.Items, item) {
-		logger.Warn(fmt.Sprintf("%q already exists in %s", item, m.name))
+		logger.Warn(fmt.Sprintf("%q already exists in %s", item, MetaNames[m.metaType]))
 		return ErrDuplicate
 	}
 
-	logger.Info(fmt.Sprintf("adding %q to %s", item, m.name))
+	logger.Info(fmt.Sprintf("adding %q to %s", item, MetaNames[m.metaType]))
 
 	m.Items = append(m.Items, item)
 	m.dirty = true
+
+	switch m.metaType {
+	case ModInfoName:
+		if err := modCache.Parse(item); err != nil {
+			return fmt.Errorf("modCache.Add: %w", err)
+		}
+	case ToolInfoName:
+		// TODO: Implement Parse() for ToolInfo
+		// 	if err := toolCache.Parse(item); err != nil {
+		// 		return fmt.Errorf("toolCache.Add: %w", err)
+		//  }
+	}
 
 	return nil
 }
@@ -113,7 +140,7 @@ func (m *metaList) Remove(item string) error {
 		return errors.New("item cannot be blank in call to Remove()")
 	}
 
-	logger.Info(fmt.Sprintf("removing %q from %s", item, m.name))
+	logger.Info(fmt.Sprintf("removing %q from %s", item, MetaNames[m.metaType]))
 
 	for i, v := range m.Items {
 		if v == item {
@@ -125,6 +152,11 @@ func (m *metaList) Remove(item string) error {
 
 	// TODO: Remove entries depending on type (modinfo, toolinfo, etc.)
 	return nil
+}
+
+// Dummy function to satisfy the interface
+func (m *metaList) Parse(item string) error {
+	return m.Add(item)
 }
 
 func (m *metaList) String() string {
@@ -142,12 +174,12 @@ func (m *metaList) MarshalJSON() ([]byte, error) {
 	if j, err := json.MarshalIndent(m.Items, "  ", "  "); err != nil {
 		return out, err
 	} else {
-		return fmt.Appendf(out, "{\n  %q: %s\n}\n", m.name, string(j)), nil
+		return fmt.Appendf(out, "{\n  %q: %s\n}\n", MetaNames[m.metaType], string(j)), nil
 	}
 }
 
 func (m *metaList) configCollectionString() string {
-	return metaCollectionBase + "." + m.name
+	return metaCollectionBase + "." + MetaNames[m.metaType]
 }
 
 /*

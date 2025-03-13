@@ -10,13 +10,14 @@ import (
 	gfs "cloud.google.com/go/firestore"
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/mod"
+	"github.com/spf13/viper"
 	"google.golang.org/api/iterator"
 )
 
 const modsCollectionBase = "firebase.collections.mods"
 
 // Data Cache
-var modCache = mods{name: "mods"}
+var modCache = mods{name: viper.GetString(modsCollectionBase)}
 
 type mods struct {
 	Items []mod.Mod
@@ -26,7 +27,7 @@ type mods struct {
 
 func (M *mods) Fetch() error {
 	if M.Items != nil {
-		logger.Info("Using cached data for mods")
+		logger.Info(fmt.Sprintf("Using cached data for %s", M.name))
 		return nil
 	}
 
@@ -57,7 +58,7 @@ func (M *mods) Fetch() error {
 		M.Items = append(M.Items, m)
 	}
 
-	logger.Info("successfully retrieved mods")
+	logger.Info(fmt.Sprintf("successfully retrieved %s", M.name))
 
 	return nil
 }
@@ -85,20 +86,49 @@ func (M *mods) Commit() (*gfs.WriteResult, error) {
 		return nil, errors.New("firestore client not initialized")
 	}
 
-	fsCollection, err := getCollection(modsCollectionBase)
+	// Retrieve the collection name from our config
+	collectionName, err := getCollection(modsCollectionBase)
 	if err != nil {
 		return nil, fmt.Errorf("getCollection: %w", err)
 	}
 
-	logger.Info(fmt.Sprintf("committing changes to %q", fsCollection))
+	collection := fsClient.Collection(collectionName)
+	if collection == nil {
+		return nil, fmt.Errorf("%s collection not found", M.name)
+	}
 
-	doc := fsClient.Collection(fsCollection).NewDoc()
+	logger.Info(fmt.Sprintf("committing changes to %q", collectionName))
 
-	return doc.Set(context.Background(), M)
+	for _, m := range M.Items {
+		switch m.State() {
+		case mod.StateNew:
+			if _, err := collection.NewDoc().Set(context.Background(), m); err != nil {
+				return nil, err
+			}
+		case mod.StateUpdated:
+			if _, err := collection.Doc(m.ID).Set(context.Background(), m); err != nil {
+				return nil, err
+			}
+		case mod.StateDeleted:
+			if _, err := collection.Doc(m.ID).Delete(context.Background()); err != nil {
+				return nil, err
+			}
+		default: // Unmodified
+			continue
+		}
+	}
+
+	return nil, nil
 }
 
 func (M *mods) Count() int {
 	return len(M.Items)
+}
+
+func (M *mods) Parse(item string) error {
+	// FIXME: Implement Parse() for Mods
+	logger.Warn("Parse() not implemented for mods")
+	return nil
 }
 
 // Remove an item from the list
@@ -123,17 +153,8 @@ func (M *mods) MarshalJSON() ([]byte, error) {
 	if j, err := json.MarshalIndent(M.Items, "  ", "  "); err != nil {
 		return out, err
 	} else {
-		return fmt.Appendf(out, "{\n  %q: %s\n}\n", "mods", string(j)), nil
+		return fmt.Appendf(out, "{\n  %q: %s\n}\n", M.name, string(j)), nil
 	}
-}
-
-// Update updates or adds an item to the list
-// If item is already in the list, it will be removed and replaced with newItem
-// if item is blank, newItem will be added
-func (M *mods) Update(item mod.Mod, newItem mod.Mod) error {
-	// FIXME: Implement Udate() for Mods
-	logger.Warn("Update() not implemented for mods")
-	return nil
 }
 
 /*
