@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 
 	"cloud.google.com/go/auth/credentials"
 	gfs "cloud.google.com/go/firestore"
@@ -48,39 +49,85 @@ func (e ErrConfigNotFound) Error() string {
 }
 
 func CommitAll() error {
+	var wg sync.WaitGroup
+
 	if fsClient == nil {
 		logger.Panic(errors.New("firestore client not initialized"))
 	}
+
+	chErr := make(chan error, 1)
+	defer close(chErr)
 
 	logger.Info("committing All Firestore changes")
 
 	// Commit Meta collections
 	for _, collection := range dbMetaCollectionTypes {
-		if _, err := collection.Commit(); err != nil {
-			return err
-		}
+		wg.Add(1)
+		go func(c DBList[string]) {
+			defer wg.Done()
+
+			if _, err := c.Commit(); err != nil {
+				chErr <- err
+			}
+		}(collection)
 	}
 
 	// Commit mod collections
-	if _, err := modCache.Commit(); err != nil {
-		return err
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		if _, err := modCache.Commit(); err != nil {
+			chErr <- err
+		}
+	}()
+
+	logger.Info("waiting for Firestore data to be saved")
+	wg.Wait()
+
+	select {
+	case err := <-chErr:
+		logger.Error(err.Error())
+	default:
+		logger.Info("Save complete")
 	}
 
 	return fsClient.Close()
 }
 
 func FetchAll() error {
+	var wg sync.WaitGroup
+
+	// Initialize Firestore client
+	if _, err := getClient(); err != nil {
+		logger.Fatal(err)
+	}
+
 	// Fetch Meta lists
 	for _, collection := range dbMetaCollectionTypes {
-		if err := collection.Fetch(); err != nil {
-			return err
-		}
+		wg.Add(1)
+		go func(c DBList[string]) {
+			defer wg.Done()
+
+			if err := c.Fetch(); err != nil {
+				logger.Error(err.Error())
+			}
+		}(collection)
 	}
 
 	// Fetch Mods
-	if err := modCache.Fetch(); err != nil {
-		return err
-	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		if err := modCache.Fetch(); err != nil {
+			logger.Error(err.Error())
+		}
+	}()
+
+	logger.Info("waiting for Firestore data to be fetched")
+	wg.Wait()
+	logger.Info("Fetch complete")
 
 	return nil
 }

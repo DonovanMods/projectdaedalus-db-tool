@@ -47,6 +47,10 @@ func doMetaAdd(cmd *cobra.Command, args []string, collection func() (firestore.D
 		logger.Fatal(errors.New("no item given to add"))
 	}
 
+	if err := firestore.FetchAll(); err != nil {
+		logger.Fatal(err)
+	}
+
 	meta, err := collection()
 	if err != nil {
 		logger.Fatal(err)
@@ -66,7 +70,7 @@ func doMetaAdd(cmd *cobra.Command, args []string, collection func() (firestore.D
 		}
 	}
 
-	if _, err := meta.Commit(); err != nil {
+	if err := firestore.CommitAll(); err != nil {
 		logger.Fatal(err)
 	}
 

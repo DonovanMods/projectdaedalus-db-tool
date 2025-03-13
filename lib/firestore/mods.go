@@ -10,14 +10,13 @@ import (
 	gfs "cloud.google.com/go/firestore"
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/mod"
-	"github.com/spf13/viper"
 	"google.golang.org/api/iterator"
 )
 
 const modsCollectionBase = "firebase.collections.mods"
 
 // Data Cache
-var modCache = mods{name: viper.GetString(modsCollectionBase)}
+var modCache mods
 
 type mods struct {
 	Items []mod.Mod
@@ -161,8 +160,18 @@ func (M *mods) MarshalJSON() ([]byte, error) {
 // Public Functions
 */
 func ModList() (DBList[mod.Mod], error) {
-	err := modCache.Fetch()
+	collectionName, err := getCollection(modsCollectionBase)
 	if err != nil {
+		logger.Fatal(fmt.Errorf("getCollection: %w", err))
+	}
+
+	if collectionName == "" {
+		logger.Fatal(ErrConfigNotFound{item: modsCollectionBase})
+	}
+
+	modCache = mods{name: collectionName}
+
+	if err := modCache.Fetch(); err != nil {
 		return nil, fmt.Errorf("Fetch: %w", err)
 	}
 
