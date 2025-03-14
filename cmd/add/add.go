@@ -61,6 +61,10 @@ func doMetaAdd(cmd *cobra.Command, args []string, collection func() (firestore.D
 		return
 	}
 
+	if forceFlag, _ := cmd.Flags().GetBool("force"); forceFlag {
+		viper.Set("force", true)
+	}
+
 	for _, item := range args {
 		if err = meta.Add(item); err != nil {
 			if errors.Is(err, firestore.ErrDuplicate) {
@@ -77,4 +81,8 @@ func doMetaAdd(cmd *cobra.Command, args []string, collection func() (firestore.D
 	if viper.GetInt("verbosity") > 0 {
 		fmt.Println(meta.String())
 	}
+}
+
+func init() {
+	AddCmd.PersistentFlags().Bool("force", false, "force overwrite")
 }

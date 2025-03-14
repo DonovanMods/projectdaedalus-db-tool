@@ -2,11 +2,13 @@ package mod
 
 import (
 	"fmt"
+	"net/url"
 )
 
 type mState int
 
 var StateString = map[mState]string{
+	StateFresh:      "Fresh",
 	StateUnmodified: "Unmodified",
 	StateNew:        "New",
 	StateUpdated:    "Updated",
@@ -14,7 +16,8 @@ var StateString = map[mState]string{
 }
 
 const (
-	StateUnmodified mState = iota
+	StateFresh mState = iota
+	StateUnmodified
 	StateNew
 	StateUpdated
 	StateDeleted
@@ -43,11 +46,11 @@ type Mod struct {
 	Version       string `firestore:"version" json:"version"`
 	Compatibility string `firestore:"compatibility" json:"compatibility"`
 	Description   string `firestore:"description" json:"description"`
-	ImageURL      string `firestore:"imageURL" json:"imageURL" omitEmpty:"true"`
-	ReadmeURL     string `firestore:"readmeURL" json:"readmeURL" omitEmpty:"true"`
+	ImageURL      string `firestore:"imageURL" json:"imageURL,"`
+	ReadmeURL     string `firestore:"readmeURL" json:"readmeURL"`
 	Files         struct {
-		Pak    string `firestore:"pak" json:"pak" omitEmpty:"true"`
-		Exmodz string `firestore:"exmodz" json:"exmodz" omitEmpty:"true"`
+		Pak    string `firestore:"pak,omitempty" json:"pak,omitempty"`
+		Exmodz string `firestore:"exmodz,omitempty" json:"exmodz,omitempty"`
 	} `firestore:"files" json:"files"`
 	Meta struct {
 		Status struct {
@@ -58,13 +61,22 @@ type Mod struct {
 	} `firestore:"meta" json:"meta"`
 }
 
-func (m Mod) New() Mod {
-	mod := Mod{}
-	mod.Meta.Status.Errors = []string{}
-	mod.Meta.Status.Warnings = []string{}
-	mod.SetState(StateNew)
+func (M *Mod) Reset() *Mod {
+	*M = Mod{}
+	M.Clean()
 
-	return mod
+	return M
+}
+
+func (M *Mod) Clean() {
+	M.Meta.state = StateFresh
+	M.Meta.Status.Errors = []string{}
+	M.Meta.Status.Warnings = []string{}
+
+	M.ImageURL = cleanURI(M.ImageURL)
+	M.ReadmeURL = cleanURI(M.ReadmeURL)
+	M.Files.Pak = cleanURI(M.Files.Pak)
+	M.Files.Exmodz = cleanURI(M.Files.Exmodz)
 }
 
 func (m *Mod) String() string {
@@ -100,9 +112,45 @@ func (m *Mod) AddError(s string) {
 }
 
 func (m *Mod) Dirty() bool {
-	return m.Meta.state != StateUnmodified
+	return m.Meta.state > StateUnmodified
 }
 
 func (m *Mod) Valid() bool {
 	return len(m.Meta.Status.Errors) == 0
+}
+
+/*
+// Public Methods
+*/
+// New creates a new Mod object with the state set to StateNew
+func New() *Mod {
+	newMod := Mod{}
+	newMod.Reset()
+	newMod.SetState(StateNew)
+	newMod.Version = "0.1.0"
+
+	return &newMod
+}
+
+/*
+// Private Methods
+*/
+func cleanURI(uri string) string {
+	parsedURL, err := url.Parse(uri)
+	if err != nil {
+		fmt.Println("Error parsing URL:", err)
+		return ""
+	}
+
+	// Remove query string
+	parsedURL.RawQuery = ""
+
+	// Remove trailing slash
+	if len(parsedURL.Path) > 1 {
+		if parsedURL.Path[len(parsedURL.Path)-1] == '/' {
+			parsedURL.Path = parsedURL.Path[:len(parsedURL.Path)-1]
+		}
+	}
+
+	return parsedURL.String()
 }

@@ -9,6 +9,7 @@ import (
 
 	gfs "cloud.google.com/go/firestore"
 	"github.com/donovanmods/projectdaedalus-db-tool/lib/logger"
+	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
 )
 
@@ -71,6 +72,8 @@ func (m *metaList) Fetch() error {
 // Add adds or updates an item in the list
 // If item is already in the list, it will be removed and replaced
 func (m *metaList) Add(item string) error {
+	force := viper.GetBool("force")
+
 	if item == "" {
 		return errors.New("item cannot be blank in call to Add()")
 	}
@@ -80,8 +83,14 @@ func (m *metaList) Add(item string) error {
 	}
 
 	if slices.Contains(m.Items, item) {
-		logger.Warn(fmt.Sprintf("%q already exists in %s", item, MetaNames[m.metaType]))
-		return ErrDuplicate
+		if !force {
+			logger.Warn(fmt.Sprintf("%q already exists in %s", item, MetaNames[m.metaType]))
+			return ErrDuplicate
+		}
+
+		if err := m.Remove(item); err != nil {
+			return fmt.Errorf("Remove: %w", err)
+		}
 	}
 
 	logger.Info(fmt.Sprintf("adding %q to %s", item, MetaNames[m.metaType]))
@@ -144,7 +153,7 @@ func (m *metaList) Remove(item string) error {
 
 	for i, v := range m.Items {
 		if v == item {
-			m.Items = slices.Delete(m.Items, i, i)
+			m.Items = slices.Delete(m.Items, i, i+1)
 		}
 	}
 

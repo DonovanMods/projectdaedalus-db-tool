@@ -120,6 +120,14 @@ func FetchAll() error {
 	go func() {
 		defer wg.Done()
 
+		// Initialize modCache if not already done
+		if modCache.name == "" {
+			if _, err := ModList(); err != nil {
+				logger.Error(err.Error())
+			}
+			return
+		}
+
 		if err := modCache.Fetch(); err != nil {
 			logger.Error(err.Error())
 		}
